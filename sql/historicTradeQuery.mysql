@@ -1,0 +1,20 @@
+# Historical Trade Report Query Report #
+
+select t.id TradeID, DATE_FORMAT(t.stamp2, '%m%d%Y%H:%i:%S') TradeDate, t.principal_factor as "PRINCIPAL FACTOR", b.bond_ticker, b.isin, b.cusip, b.currency, t.size as 'Notional Size', ROUND(t.size * t.principal_factor) as 'Non-Notional Size', t.price, DATE_FORMAT(t.settlement_date, '%m/%d/%Y') as "settlement_date", t.accrued_interest, 
+
+if(bo.am_bd=1, substring_index(bg.member_id, '|', -1), substring_index(bg.member_id, '|', 1)) Buyer, bg.country as "Buyer Region", t.b_commission, t.price + t.b_commission as "Buyer Net", round((t.size * if(b.q_convention='Units',1,0.01) * (price + b_commission) * t.principal_factor) + t.accrued_interest,2) as "Buy Net Money", 
+
+if(so.am_bd=1, substring_index(sg.member_id, '|', -1), substring_index(sg.member_id, '|', 1)) Seller, sg.country as "Seller Region", t.s_commission, t.price - t.s_commision as "Seller Net", round((t.size * if(b.q_convention='Units',1,0.01) * (price - s_commission) * t.principal_factor) + t.accrued_interest,2) as "Seler Net Money",
+
+if(bo.user_id=so.user_id,'Yes','No') "Is Put-Thru"
+from arc_traces t
+join arc_orders bo on bo.id=t.b_order
+join user bu on bu.id=bo.user_id
+join groups bg on bg.id=bu.group_id
+join arc_orders so on so.id=t.s_order
+join user su on su.id=so.user_id
+join groups sg on sg.id=su.group_id
+join bond b on b.id=bo.bond_id
+and b.bond_ticker not like 'TEST%'
+where DATE(t.stamp2) = '2022-03-24'
+order by TradeID desc
